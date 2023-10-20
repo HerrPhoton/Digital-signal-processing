@@ -76,31 +76,18 @@ class Signal_Handler:
 
 class Signal_Display:
 
-    def __init__(self, subplots_num: int = 1, title: str = None, fig_size: tuple = None):
-        plt.ioff()
-        self.fig, self.ax = plt.subplots(subplots_num, 1)
-
-        if subplots_num == 1:
-            self.ax = [self.ax]
-
-        self.fig.suptitle(title)
-        if fig_size is not None:
-            self.fig.set_figwidth(fig_size[0])
-            self.fig.set_figheight(fig_size[1])
-
-
-    def make_plot(self, x: np.ndarray, y: np.ndarray, is_spectrum: bool = False, plt_id: int = 0, **kwards):
-
-        interval = kwards.get('interval')
+    def __init__(self, subplots_num: int = 1, title: str = None, title_fontsize = None, fig_size: tuple = None):
         
-        color = kwards.get('color')
-        linestyle = kwards.get('linestyle')
+        self.subplots_num = subplots_num
+        self.title = title
+        self.title_fontsize = title_fontsize
+        self.fig_size = fig_size
 
-        legend  = kwards.get('legend')
-        x_label = kwards.get('x_label')
-        y_label = kwards.get('y_label')
-        title = kwards.get('title')
+        self.ax_desc = {ax_id : [] for ax_id in range(subplots_num)}
+ 
+    def make_plot(self, ax_id, x: np.ndarray, y: np.ndarray, is_spectrum: bool = False, **kwards):
 
+        interval = kwards.get('interval')   
         ids = range(len(x))
 
         if interval is not None:   
@@ -109,36 +96,77 @@ class Signal_Display:
         if is_spectrum:
             y[ids] = 2 * np.abs(y[ids]) / len(y)
 
-        self.ax[plt_id].plot(x[ids], y[ids], color = color, label = legend, linestyle = linestyle)
-
-        if not is_spectrum:
-            if x_label is None:
-                self.ax[plt_id].set_xlabel('Время, с')
-            else: 
-                self.ax[plt_id].set_xlabel(x_label)
-
-            if y_label is None:
-                self.ax[plt_id].set_ylabel('Амплитуда')
-            else: 
-                self.ax[plt_id].set_ylabel(y_label)
-
-        else:
-            if x_label is None:
-                self.ax[plt_id].set_xlabel('Частота, Гц')
-            else: 
-                self.ax[plt_id].set_xlabel(x_label)
-
-            if y_label is None:
-                self.ax[plt_id].set_ylabel('Амплитуда')
-            else: 
-                self.ax[plt_id].set_ylabel(y_label)
-
-        if legend is not None:
-            self.ax[plt_id].legend()
-
-        self.ax[plt_id].grid()
-        self.ax[plt_id].set_title(title)
+        new_plot = dict(x = x[ids], y = y[ids], is_spectrum = is_spectrum, **kwards)
+        self.ax_desc[ax_id].append(new_plot)
 
     def plot(self):
+
+        self.fig, self.ax = plt.subplots(self.subplots_num, 1)
+
+        if self.subplots_num == 1:
+            self.ax = [self.ax]
+
+        for ax_id in self.ax_desc.keys():
+            for plot_desc in self.ax_desc[ax_id]:
+
+                is_spectrum = plot_desc.get('is_spectrum')
+                
+                color = plot_desc.get('color')
+                linestyle = plot_desc.get('linestyle')
+                linewidth = plot_desc.get('linewidth')
+                legend  = plot_desc.get('legend')
+                
+                x_label = plot_desc.get('x_label')
+                y_label = plot_desc.get('y_label')
+                title = plot_desc.get('title')
+                
+                x = plot_desc.get('x')
+                y = plot_desc.get('y')
+
+                if color is None:
+                    color = 'b'
+
+                self.ax[ax_id].plot(x, 
+                                    y, 
+                                    color = color, 
+                                    linestyle = linestyle, 
+                                    label = legend,
+                                    linewidth = linewidth)
+
+                if not is_spectrum:
+                    if x_label is None:
+                        self.ax[ax_id].set_xlabel('Время, с')
+                    else: 
+                        self.ax[ax_id].set_xlabel(x_label)
+
+                    if y_label is None:
+                        self.ax[ax_id].set_ylabel('Амплитуда')
+                    else: 
+                        self.ax[ax_id].set_ylabel(y_label)
+
+                else:
+                    if x_label is None:
+                        self.ax[ax_id].set_xlabel('Частота, Гц')
+                    else: 
+                        self.ax[ax_id].set_xlabel(x_label)
+
+                    if y_label is None:
+                        self.ax[ax_id].set_ylabel('Амплитуда')
+                    else: 
+                        self.ax[ax_id].set_ylabel(y_label)
+
+                if legend is not None:
+                    self.ax[ax_id].legend()
+
+                self.ax[ax_id].set_title(title)
+            
+            self.ax[ax_id].grid()
+
+        if self.fig_size is not None:
+            self.fig.set_figwidth(self.fig_size[0])
+            self.fig.set_figheight(self.fig_size[1])
+
+        self.fig.suptitle(self.title, size = self.title_fontsize)
         self.fig.tight_layout()
+        
         plt.show()
