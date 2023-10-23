@@ -3,7 +3,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-from typing import Literal, Union
+from typing import Literal
 
 
 class Converter:
@@ -15,16 +15,31 @@ class Converter:
         self.w = kwards.get('w')
 
         if self.T is not None:
-            self.f = 1 / self.T
-            self.w = 2 * np.pi / self.T
+
+            if any([isinstance(self.T, float),
+                   isinstance(self.T, int)]):
+                self.T = [self.T]
+
+            self.f = [1 / self.T[i] for i in range(len(self.T))]
+            self.w = [2 * np.pi / self.T[i] for i in range(len(self.T))]
 
         elif self.f is not None:
-            self.T = 1 / self.f
-            self.w = 2 * np.pi * self.f
+
+            if any([isinstance(self.f, float),
+                   isinstance(self.f, int)]):
+                self.f = [self.f]
+
+            self.T = [1 / self.f[i] for i in range(len(self.f))]
+            self.w = [2 * np.pi * self.f[i] for i in range(len(self.f))]
 
         elif self.w is not None:
-            self.f = self.w / (2 * np.pi)
-            self.T = 1 / self.f
+
+            if any([isinstance(self.w, float),
+                   isinstance(self.w, int)]):
+                self.w = [self.w]
+
+            self.f = [self.w[i] / (2 * np.pi) for i in range(len(self.w))]
+            self.T = [1 / self.f[i] for i in range(len(self.w))]
 
 
 class Signal_Handler:
@@ -41,26 +56,32 @@ class Signal_Handler:
     
     def make_signal(self, 
                     func_name: Literal['cos', 'rect', 'triang', 'other'], 
-                    A: float, 
-                    w: Union[float, list, tuple],
                     interval: tuple, 
                     sample_rate: int = 1000,
-                    func = None):
+                    **kwards):
         
-        self._funcs = {'cos' : self._cos, 'rect' : self._rect, 'trinag' : self._triang, 'other' : func}
+        self._funcs = {'cos' : self._cos, 'rect' : self._rect, 'trinag' : self._triang, 'other' : kwards.get('func')}
         x, dt = np.linspace(interval[0], 
                             interval[1], 
                             num = sample_rate, 
                             endpoint = False, 
                             retstep = True)
 
-        if isinstance(w, float):
-            y = np.apply_along_axis(lambda z: self._funcs[func_name](z, A, w), 0, x)
-        else:
+        if func_name != 'other':
+
+            w = kwards.get('w')
+            A = kwards.get('A')
+
+            if isinstance(w, float):
+                w = [w]
+
             y = np.sum([
                 np.apply_along_axis(lambda z: self._funcs[func_name](z, A, w[t]), 0, x)
                 for t in range(len(w))],
                 axis = 0)
+                
+        else:
+            y = np.apply_along_axis(self._funcs[func_name], 0, x)
         
         return x, y, dt
     
@@ -76,14 +97,12 @@ class Signal_Handler:
 
 class Signal_Display:
 
-    def __init__(self, subplots_num: int = 1, title: str = None, title_fontsize = None, fig_size: tuple = None):
-        
-        self.subplots_num = subplots_num
-        self.title = title
-        self.title_fontsize = title_fontsize
-        self.fig_size = fig_size
+    def __init__(self, subplots_num: int = 1, **kwards):
 
-        self.ax_desc = {ax_id : [] for ax_id in range(subplots_num)}
+        self.subplots_num = subplots_num
+
+        self.set_figure_settings(**kwards)
+        self.clear()
  
     def make_plot(self, ax_id, x: np.ndarray, y: np.ndarray, is_spectrum: bool = False, **kwards):
 
@@ -162,11 +181,26 @@ class Signal_Display:
             
             self.ax[ax_id].grid()
 
-        if self.fig_size is not None:
-            self.fig.set_figwidth(self.fig_size[0])
-            self.fig.set_figheight(self.fig_size[1])
+        self.fig.set_figwidth(self.fig_size[0])
+        self.fig.set_figheight(self.fig_size[1])
 
         self.fig.suptitle(self.title, size = self.title_fontsize)
         self.fig.tight_layout()
         
         plt.show()
+
+    def set_figure_settings(self, **kwards):
+        self.title = kwards.get('title')
+        self.title_fontsize = kwards.get('title_fontsize')
+        self.fig_size = kwards.get('fig_size')
+
+        if self.fig_size is None:
+            self.fig_size = (10, 1.6 * self.subplots_num)
+        
+    def clear(self, subplots_num = None):
+
+        if subplots_num is not None:
+            self.subplots_num = subplots_num
+
+        self.ax_desc = {ax_id : [] for ax_id in range(self.subplots_num)}
+        self.set_figure_settings()
