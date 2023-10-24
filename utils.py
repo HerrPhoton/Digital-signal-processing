@@ -76,12 +76,12 @@ class Signal_Handler:
                 w = [w]
 
             y = np.sum([
-                np.apply_along_axis(lambda z: self._funcs[func_name](z, A, w[t]), 0, x)
+                self._funcs[func_name](x, A, w[t])
                 for t in range(len(w))],
                 axis = 0)
                 
         else:
-            y = np.apply_along_axis(self._funcs[func_name], 0, x)
+            y = self._funcs[func_name](x)
         
         return x, y, dt
     
