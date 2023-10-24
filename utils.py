@@ -52,7 +52,7 @@ class Signal_Handler:
         return xfft, yfft
     
     def from_spectrum(self, yfft: np.ndarray):
-        return ifft(np.abs(yfft))
+        return ifft(yfft)
     
     def make_signal(self, 
                     func_name: Literal['cos', 'rect', 'triang', 'other'], 
@@ -104,7 +104,7 @@ class Signal_Display:
         self.set_figure_settings(**kwards)
         self.clear()
  
-    def make_plot(self, ax_id, x: np.ndarray, y: np.ndarray, is_spectrum: bool = False, **kwards):
+    def make_plot(self, ax_id, x: np.ndarray, y: np.ndarray, is_spectrum: bool = False, normalize = True, **kwards):
 
         interval = kwards.get('interval')   
         ids = range(len(x))
@@ -113,7 +113,10 @@ class Signal_Display:
             ids = np.logical_and(x >= interval[0], x <= interval[1])
 
         if is_spectrum:
-            y[ids] = 2 * np.abs(y[ids]) / len(y)
+            y[ids] = np.abs(y[ids])
+
+            if normalize:
+                y[ids] = 2 * y[ids] / len(y)
 
         new_plot = dict(x = x[ids], y = y[ids], is_spectrum = is_spectrum, **kwards)
         self.ax_desc[ax_id].append(new_plot)
