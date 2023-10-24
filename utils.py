@@ -200,10 +200,10 @@ class Signal_Display:
         if self.fig_size is None:
             self.fig_size = (10, 1.6 * self.subplots_num)
         
-    def clear(self, subplots_num = None):
+    def clear(self, subplots_num = None, **kwards):
 
         if subplots_num is not None:
             self.subplots_num = subplots_num
 
         self.ax_desc = {ax_id : [] for ax_id in range(self.subplots_num)}
-        self.set_figure_settings()
+        self.set_figure_settings(**kwards)
