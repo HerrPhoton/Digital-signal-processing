@@ -44,6 +44,9 @@ class Converter:
 
 class Signal_Handler:
 
+    def convolve(self, signal: np.ndarray, kernel: np.ndarray, mode = 'full'):
+        return np.convolve(signal, kernel, mode = mode) / np.sum(kernel)
+
     def find_spectrum(self, y: np.ndarray, dt: float):
 
         xfft = fftfreq(y.size) / dt
@@ -96,93 +99,77 @@ class Signal_Handler:
 
 
 class Signal_Display:
-
-    def __init__(self, subplots_num: int = 1, **kwards):
-
-        self.subplots_num = subplots_num
-
-        self.set_figure_settings(**kwards)
-        self.clear()
  
+    def __init__(self):
+        self.clear()
+
     def make_plot(self, ax_id, x: np.ndarray, y: np.ndarray, is_spectrum: bool = False, normalize = True, **kwards):
 
         interval = kwards.get('interval')   
-        ids = range(len(x))
+        ids = range(x.size)
 
-        if interval is not None:   
-            ids = np.logical_and(x >= interval[0], x <= interval[1])
+        if interval is not None:  
+            ids = (x >= interval[0]) & (x <= interval[1])
 
         if is_spectrum:
             y[ids] = np.abs(y[ids])
 
             if normalize:
-                y[ids] = 2 * y[ids] / len(y)
+                y[ids] = 2 * y[ids] / y.size
 
         new_plot = dict(x = x[ids], y = y[ids], is_spectrum = is_spectrum, **kwards)
+
+        if ax_id not in list(self.ax_desc.keys()):
+            self.ax_desc[ax_id] = []
+
         self.ax_desc[ax_id].append(new_plot)
 
-    def plot(self):
-
-        self.fig, self.ax = plt.subplots(self.subplots_num, 1)
+    def plot(self, **kwards):
+        
+        self.subplots_num = np.unique(list(self.ax_desc.keys())).size
+        self.fig, self.ax = plt.subplots(self.subplots_num)
 
         if self.subplots_num == 1:
             self.ax = [self.ax]
 
-        for ax_id in self.ax_desc.keys():
+        for ax_id in np.sort(list(self.ax_desc.keys())):
             for plot_desc in self.ax_desc[ax_id]:
 
                 is_spectrum = plot_desc.get('is_spectrum')
                 
-                color = plot_desc.get('color')
+                color = plot_desc.get('color', 'b')
                 linestyle = plot_desc.get('linestyle')
                 linewidth = plot_desc.get('linewidth')
                 legend  = plot_desc.get('legend')
+                alpha = plot_desc.get('alpha', 1)
                 
-                x_label = plot_desc.get('x_label')
-                y_label = plot_desc.get('y_label')
+                x_label = plot_desc.get('x_label', 'Время, с' if not is_spectrum else 'Частота, Гц')
+                y_label = plot_desc.get('y_label', 'Амплитуда')
                 title = plot_desc.get('title')
                 
                 x = plot_desc.get('x')
                 y = plot_desc.get('y')
-
-                if color is None:
-                    color = 'b'
 
                 self.ax[ax_id].plot(x, 
                                     y, 
                                     color = color, 
                                     linestyle = linestyle, 
                                     label = legend,
-                                    linewidth = linewidth)
-
-                if not is_spectrum:
-                    if x_label is None:
-                        self.ax[ax_id].set_xlabel('Время, с')
-                    else: 
-                        self.ax[ax_id].set_xlabel(x_label)
-
-                    if y_label is None:
-                        self.ax[ax_id].set_ylabel('Амплитуда')
-                    else: 
-                        self.ax[ax_id].set_ylabel(y_label)
-
-                else:
-                    if x_label is None:
-                        self.ax[ax_id].set_xlabel('Частота, Гц')
-                    else: 
-                        self.ax[ax_id].set_xlabel(x_label)
-
-                    if y_label is None:
-                        self.ax[ax_id].set_ylabel('Амплитуда')
-                    else: 
-                        self.ax[ax_id].set_ylabel(y_label)
+                                    linewidth = linewidth,
+                                    alpha = alpha)
 
                 if legend is not None:
                     self.ax[ax_id].legend()
 
-                self.ax[ax_id].set_title(title)
+                if title is not None:
+                    self.ax[ax_id].set_title(title)
+
+                self.ax[ax_id].set_xlabel(x_label)
+                self.ax[ax_id].set_ylabel(y_label)
             
             self.ax[ax_id].grid()
+
+        self.set_figure_settings(**kwards)
 
         self.fig.set_figwidth(self.fig_size[0])
         self.fig.set_figheight(self.fig_size[1])
@@ -193,17 +180,10 @@ class Signal_Display:
         plt.show()
 
     def set_figure_settings(self, **kwards):
+
         self.title = kwards.get('title')
-        self.title_fontsize = kwards.get('title_fontsize')
-        self.fig_size = kwards.get('fig_size')
-
-        if self.fig_size is None:
-            self.fig_size = (10, 1.6 * self.subplots_num)
+        self.title_fontsize = kwards.get('title_fontsize', 17)
+        self.fig_size = kwards.get('fig_size', (10, 1.6 * self.subplots_num))
         
-    def clear(self, subplots_num = None, **kwards):
-
-        if subplots_num is not None:
-            self.subplots_num = subplots_num
-
-        self.ax_desc = {ax_id : [] for ax_id in range(self.subplots_num)}
-        self.set_figure_settings(**kwards)
+    def clear(self):
+        self.ax_desc = {}
