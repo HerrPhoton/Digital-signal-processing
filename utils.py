@@ -55,7 +55,7 @@ class Signal_Handler:
         return xfft, yfft
     
     def from_spectrum(self, yfft: np.ndarray):
-        return ifft(yfft)
+        return ifft(yfft).real
     
     def make_signal(self, 
                     func_name: Literal['cos', 'rect', 'triang', 'other'], 
@@ -183,7 +183,7 @@ class Signal_Display:
 
         self.title = kwards.get('title')
         self.title_fontsize = kwards.get('title_fontsize', 17)
-        self.fig_size = kwards.get('fig_size', (10, 1.6 * self.subplots_num))
+        self.fig_size = kwards.get('fig_size', (12, 2.3 + 1.8 * (self.subplots_num - 1)))
         
     def clear(self):
         self.ax_desc = {}
